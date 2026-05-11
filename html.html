@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>單字卡程式 - 欄位名稱直觀化優化</title>
+<style>
+/* ... (保留原本所有的 CSS) ... */
+:root { --bg-color: #f5f5f5; --app-bg: #ffffff; --text-main: #000000; --text-sub: #666666; --text-hint: #999999; --border-color: #dddddd; --card-back-bg: #f5f5f5; --tab-active-bg: #f5f5f5; --input-bg: #ffffff; --accent-color: #4caf50; }
+@media (prefers-color-scheme: dark) { :root { --bg-color: #121212; --app-bg: #1e1e1e; --text-main: #e0e0e0; --text-sub: #aaaaaa; --text-hint: #777777; --border-color: #333333; --card-back-bg: #2d2d2d; --tab-active-bg: #333333; --input-bg: #2d2d2d; } }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: system-ui, -apple-system, sans-serif; padding: 1.5rem; max-width: 700px; margin: 0 auto; background: var(--bg-color); color: var(--text-main); transition: background 0.3s; }
+#app { background: var(--app-bg); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+.auto-panel { display: flex; align-items: center; gap: 12px; background: var(--card-back-bg); padding: 10px 15px; border-radius: 8px; margin-bottom: 1rem; flex-wrap: wrap; border: 0.5px solid var(--border-color); }
+.auto-panel label { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.auto-panel input[type="range"] { flex: 1; cursor: pointer; accent-color: var(--accent-color); }
+.speed-val { font-size: 12px; min-width: 45px; color: var(--text-sub); }
+.mode-tabs { display: flex; border: 0.5px solid var(--border-color); border-radius: 8px; overflow: hidden; margin-bottom: 1.25rem; }
+.mode-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; cursor: pointer; background: transparent; border: none; color: var(--text-sub); font-family: inherit; }
+.mode-tab.active { background: var(--tab-active-bg); color: var(--text-main); font-weight: 500; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; }
+.stat { background: var(--card-back-bg); border-radius: 8px; padding: 0.65rem 1rem; text-align: center; }
+.stat-num { font-size: 22px; font-weight: 500; }
+.stat-label { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+.progress-bar { height: 4px; background: var(--border-color); border-radius: 2px; margin-bottom: 1rem; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent-color); border-radius: 2px; transition: width 0.4s; }
+.card-area { perspective: 1000px; height: 210px; margin-bottom: 1.25rem; touch-action: pan-y; }
+.card-wrap { width: 100%; height: 210px; position: relative; transform-style: preserve-3d; transition: transform 0.5s cubic-bezier(.4,0,.2,1); cursor: pointer; }
+.card-wrap.flipped { transform: rotateY(180deg); }
+.card-face { position: absolute; inset: 0; border-radius: 12px; border: 0.5px solid var(--border-color); background: var(--app-bg); backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; }
+.card-face.back { transform: rotateY(180deg); background: var(--card-back-bg); }
+.card-idx { font-size: 12px; color: var(--text-hint); position: absolute; top: 14px; }
+.card-label { font-size: 11px; color: var(--text-sub); letter-spacing: 0.08em; margin-bottom: 8px; font-weight: bold; }
+.card-word { font-size: 28px; font-weight: 500; text-align: center; color: var(--text-main); line-height: 1.2; }
+.card-hint { font-size: 11px; color: var(--text-hint); position: absolute; bottom: 14px; }
+.rate-area { display: flex; gap: 8px; justify-content: center; margin-bottom: 1rem; }
+.btn { cursor: pointer; font-family: inherit; border-radius: 8px; font-size: 14px; font-weight: 500; padding: 9px 15px; border: 0.5px solid var(--border-color); background: transparent; color: var(--text-main); }
+.btn-wrong { color: #e24b4a; border-color: #e24b4a; }
+.btn-correct { color: var(--accent-color); border-color: var(--accent-color); }
+.nav-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.shortcut-hint { text-align: center; font-size: 12px; color: var(--text-hint); margin-top: 0.5rem; line-height: 1.5; }
+.add-row { display: flex; gap: 6px; margin-bottom: 1rem; }
+.add-row input { flex: 1; padding: 8px; border: 0.5px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-main); }
+.card-list { display: flex; flex-direction: column; gap: 4px; }
+.list-item { border: 0.5px solid var(--border-color); border-radius: 8px; overflow: hidden; }
+.list-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; min-height: 40px; }
+.badge { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.badge-none { background: #888; opacity: 0.4; }
+.badge-good { background: #4caf50; }
+.badge-bad { background: #e24b4a; }
+.lw { font-size: 14px; font-weight: 500; width: 130px; flex-shrink: 0; }
+.lm { font-size: 14px; color: var(--text-sub); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icon-btn { cursor: pointer; background: none; border: none; font-size: 15px; padding: 2px 5px; border-radius: 4px; color: var(--text-sub); font-family: inherit; }
+.edit-row { display: flex; gap: 6px; padding: 8px 12px; border-top: 0.5px solid var(--border-color); flex-wrap: wrap; }
+.edit-row input { flex: 1; min-width: 80px; font-size: 13px; padding: 6px; border: 0.5px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-main); }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="mode-tabs">
+    <button class="mode-tab active" id="tab-study" onclick="setMode('study')">學習模式</button>
+    <button class="mode-tab" id="tab-manage" onclick="setMode('manage')">管理單字</button>
+  </div>
+  <div id="study-view">
+    <div class="auto-panel">
+      <label><input type="checkbox" id="autoToggle" onchange="toggleAutoMode()"> 自動播放</label>
+      <input type="range" id="speedRange" min="1500" max="5000" step="500" value="3000" oninput="updateSpeedLabel()">
+      <span class="speed-val" id="speedVal">3.0s</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-label">總計</div></div>
+      <div class="stat"><div class="stat-num" id="s-correct" style="color:#4caf50">0</div><div class="stat-label">已掌握</div></div>
+      <div class="stat"><div class="stat-num" id="s-wrong" style="color:#e24b4a">0</div><div class="stat-label">需加強</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+    <div class="card-area">
+      <div class="card-wrap" id="cardWrap" onclick="manualFlip()">
+        <div class="card-face front">
+          <div class="card-idx" id="cardIdx"></div>
+          <div class="card-label" id="labelFront">正面</div>
+          <div class="card-word" id="cardFront">—</div>
+          <div class="card-hint">點擊翻面 · 左/右滑換頁</div>
+        </div>
+        <div class="card-face back">
+          <div class="card-idx" id="cardIdxB"></div>
+          <div class="card-label" id="labelBack">背面</div>
+          <div class="card-word" id="cardBack">—</div>
+          <div class="card-hint">點擊翻回 · 左/右滑換頁</div>
+        </div>
+      </div>
+    </div>
+    <div class="rate-area" id="rateArea" style="display:none">
+      <button class="btn btn-wrong" onclick="rate('bad')">✗ 不熟 (1)</button>
+      <button class="btn" onclick="rate('ok')">~ 還好 (2)</button>
+      <button class="btn btn-correct" onclick="rate('good')">✓ 掌握 (3)</button>
+    </div>
+    <div class="nav-row">
+      <button class="btn" onclick="goPrev()">← 上一張</button>
+      <button class="btn" onclick="doShuffle()">洗牌</button>
+      <button class="btn" onclick="resetToOrder()">恢復依序</button>
+      <button class="btn" onclick="goNext()">下一張 →</button>
+    </div>
+    <div class="shortcut-hint">快捷鍵：← → 換頁　空白鍵 翻面　1/2/3 評分<br><b>A</b> 鍵切換自動播放</div>
+  </div>
+  <div id="manage-view" style="display:none">
+    <div class="add-row">
+      <input type="text" id="newEn" placeholder="正面內容" />
+      <input type="text" id="newZh" placeholder="反面內容" />
+      <button class="btn btn-correct" onclick="addCard()">新增</button>
+    </div>
+    <div class="card-list" id="cardList"></div>
+  </div>
+</div>
+<script src="ch18_card.js"></script>
+<script>
+
+// --- 資料結構
+var deck=[], idx=0, flipped=false, animating=false, editingIdx=-1, FLIP_MS=520;
+var autoTimer = null;
+
+function initDeck() { deck = cards.slice(); idx = 0; flipped = false; document.getElementById('cardWrap').classList.remove('flipped'); showCard(); resetAutoTimer(); }
+function updateSpeedLabel() { var val = document.getElementById('speedRange').value; document.getElementById('speedVal').textContent = (val/1000).toFixed(1) + 's'; resetAutoTimer(); }
+function toggleAutoMode() { resetAutoTimer(); }
+function resetAutoTimer() { 
+  clearTimeout(autoTimer); 
+  if (!document.getElementById('autoToggle').checked) return; 
+  var speed = parseInt(document.getElementById('speedRange').value);
+  autoTimer = setTimeout(function() { if (!flipped) { flipCard(); resetAutoTimer(); } else { if (idx < deck.length - 1) { goNext(); } else { document.getElementById('autoToggle').checked = false; } } }, speed);
+}
+
+function showCard(){
+  updateStats();
+  var c = deck[idx];
+  if(!c) return;
+  // 判斷正面是否包含中文，動態更新標籤
+  var hasChinese = /[\u4E00-\u9FA5]/.test(c.正面);
+  if(hasChinese) { document.getElementById('labelFront').textContent = "中文"; document.getElementById('labelBack').textContent = "英文"; } 
+  else { document.getElementById('labelFront').textContent = "英文"; document.getElementById('labelBack').textContent = "中文"; }
+  
+  var lbl = (idx+1) + ' / ' + deck.length;
+  document.getElementById('cardIdx').textContent = lbl; document.getElementById('cardIdxB').textContent = lbl;
+  document.getElementById('cardFront').textContent = c.正面; 
+  document.getElementById('cardBack').textContent = c.反面;
+}
+
+function flipCard(){ if(animating) return; flipped = !flipped; document.getElementById('cardWrap').classList.toggle('flipped', flipped); document.getElementById('rateArea').style.display = flipped ? 'flex' : 'none'; }
+function manualFlip() { flipCard(); resetAutoTimer(); }
+function flipToFront(cb){ if(!flipped) { if(cb) cb(); return; } animating = true; flipped = false; document.getElementById('cardWrap').classList.remove('flipped'); document.getElementById('rateArea').style.display = 'none'; setTimeout(function(){ animating = false; if(cb) cb(); }, FLIP_MS); }
+function goNext(){ if(animating) return; flipToFront(function(){ if(idx < deck.length - 1){ idx++; showCard(); resetAutoTimer(); } }); }
+function goPrev(){ if(animating) return; flipToFront(function(){ if(idx > 0){ idx--; showCard(); resetAutoTimer(); } }); }
+function doShuffle() { var b = cards.slice(); for(var i=b.length-1; i>0; i--){ var j = Math.floor(Math.random()*(i+1)); var t = b[i]; b[i] = b[j]; b[j] = t; } deck = b; idx = 0; flipToFront(function(){ showCard(); resetAutoTimer(); }); }
+function resetToOrder() { initDeck(); flipToFront(function(){ showCard(); resetAutoTimer(); }); }
+
+function rate(s){ 
+  if(animating) return; 
+  var c = deck[idx]; 
+  if(c) { 
+    c.status = s; 
+    // 同步更新原始陣列狀態 (使用 正面 內容做比對)
+    var orig = cards.find(item => item.正面 === c.正面); 
+    if(orig) orig.status = s; 
+  } 
+  goNext(); 
+}
+
+function updateStats(){ var good=0, bad=0, done=0; cards.forEach(c => { if(c.status === 'good') good++; else if(c.status === 'bad') bad++; if(c.status !== 'none') done++; }); document.getElementById('s-total').textContent = cards.length; document.getElementById('s-correct').textContent = good; document.getElementById('s-wrong').textContent = bad; document.getElementById('prog').style.width = (cards.length ? Math.round(done/cards.length*100) : 0) + '%'; }
+function setMode(m){ document.getElementById('study-view').style.display = m==='study'?'':'none'; document.getElementById('manage-view').style.display = m==='manage'?'':'none'; document.getElementById('tab-study').classList.toggle('active', m==='study'); document.getElementById('tab-manage').classList.toggle('active', m==='manage'); if(m==='manage') { editingIdx = -1; renderList(); document.getElementById('autoToggle').checked = false; resetAutoTimer(); } else { initDeck(); } }
+
+function renderList(){ 
+  var el = document.getElementById('cardList'); 
+  el.innerHTML = ''; 
+  cards.forEach((c, i) => { 
+    var isEdit = editingIdx === i; 
+    var item = document.createElement('div'); 
+    item.className = 'list-item'; 
+    var row = document.createElement('div'); 
+    row.className = 'list-row'; 
+    row.innerHTML = `<div class="badge badge-${c.status}"></div><div class="lw">${c.正面}</div><div class="lm">${c.反面}</div><button class="icon-btn" onclick="toggleEdit(${i})">${isEdit ? '✕' : '✎'}</button><button class="icon-btn" onclick="delCard(${i})">×</button>`; 
+    item.appendChild(row); 
+    if(isEdit) { 
+      var erow = document.createElement('div'); 
+      erow.className = 'edit-row'; 
+      erow.innerHTML = `<input type="text" id="edit-front-${i}" value="${c.正面}"><input type="text" id="edit-back-${i}" value="${c.反面}"><button class="btn btn-correct" style="padding:4px 8px" onclick="saveEdit(${i})">儲存</button>`; 
+      item.appendChild(erow); 
+    } 
+    el.appendChild(item); 
+  }); 
+}
+
+function toggleEdit(i) { editingIdx = (editingIdx === i) ? -1 : i; renderList(); }
+function saveEdit(i) { 
+  var f = document.getElementById(`edit-front-${i}`).value.trim(); 
+  var b = document.getElementById(`edit-back-${i}`).value.trim(); 
+  if(f && b) { cards[i].正面 = f; cards[i].反面 = b; editingIdx = -1; renderList(); } 
+}
+function delCard(i) { if(confirm('確定刪除？')) { cards.splice(i, 1); renderList(); } }
+function addCard(){ 
+  var f = document.getElementById('newEn').value.trim(); 
+  var b = document.getElementById('newZh').value.trim(); 
+  if(f && b) { cards.push({正面:f, 反面:b, status:'none'}); document.getElementById('newEn').value = ''; document.getElementById('newZh').value = ''; renderList(); } 
+}
+
+// --- 滑動翻頁邏輯 ---
+let touchStartX = 0;
+let touchStartY = 0;
+document.getElementById('cardWrap').addEventListener('touchstart', function(e) {
+  touchStartX = e.changedTouches[0].screenX;
+  touchStartY = e.changedTouches[0].screenY;
+}, false);
+document.getElementById('cardWrap').addEventListener('touchend', function(e) {
+  let touchEndX = e.changedTouches[0].screenX;
+  let touchEndY = e.changedTouches[0].screenY;
+  handleSwipe(touchStartX, touchStartY, touchEndX, touchEndY);
+}, false);
+
+function handleSwipe(startX, startY, endX, endY) {
+  let dx = endX - startX;
+  let dy = endY - startY;
+  let absX = Math.abs(dx);
+  let absY = Math.abs(dy);
+  if (Math.max(absX, absY) > 40) {
+    if (absX > absY) {
+      if (dx < 0) { goNext(); } else { goPrev(); }
+    } else {
+      if (dy < 0) { manualFlip(); }
+    }
+  }
+}
+
+// --- 快捷鍵與音量鍵監聽 ---
+let keysPressed = {}; // 用於追蹤按鍵狀態，實現組合鍵
+
+document.addEventListener('keydown', function(e){
+  if(document.activeElement.tagName === 'INPUT') return;
+  
+  keysPressed[e.key] = true;
+
+  // 1. 音量鍵組合操作：同時按住音量加與減 (翻卡)
+  if (keysPressed['VolumeUp'] && keysPressed['VolumeDown']) {
+    e.preventDefault();
+    manualFlip();
+  } 
+  // 2. 單獨音量鍵操作
+  else if (e.key === 'VolumeUp') {
+    e.preventDefault();
+    goPrev();
+  } else if (e.key === 'VolumeDown') {
+    e.preventDefault();
+    goNext();
+  }
+
+  // 原有快捷鍵
+  if(e.key === 'a' || e.key === 'A') { var cb = document.getElementById('autoToggle'); cb.checked = !cb.checked; toggleAutoMode(); }
+  if(e.key === ' ' || e.key === 'Enter') { e.preventDefault(); manualFlip(); }
+  if(e.key === 'ArrowRight') goNext();
+  if(e.key === 'ArrowLeft') goPrev();
+  if(flipped){ if(e.key === '1') rate('bad'); if(e.key === '2') rate('ok'); if(e.key === '3') rate('good'); }
+});
+
+document.addEventListener('keyup', function(e) {
+  delete keysPressed[e.key];
+});
+initDeck();
+</script>
+</body>
+</html>
