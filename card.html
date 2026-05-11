@@ -229,37 +229,59 @@ function handleSwipe(startX, startY, endX, endY) {
 }
 
 // --- 快捷鍵與音量鍵監聽 ---
-let keysPressed = {}; // 用於追蹤按鍵狀態，實現組合鍵
+let keysPressed = {}; 
 
+// 設定監聽器，使用 { passive: false } 確保能攔截系統音量列
 document.addEventListener('keydown', function(e){
-  if(document.activeElement.tagName === 'INPUT') return;
-  
-  keysPressed[e.key] = true;
+    if(document.activeElement.tagName === 'INPUT') return;
+    
+    keysPressed[e.key] = true;
 
-  // 1. 音量鍵組合操作：同時按住音量加與減 (翻卡)
-  if (keysPressed['VolumeUp'] && keysPressed['VolumeDown']) {
-    e.preventDefault();
-    manualFlip();
-  } 
-  // 2. 單獨音量鍵操作
-  else if (e.key === 'VolumeUp') {
-    e.preventDefault();
-    goPrev();
-  } else if (e.key === 'VolumeDown') {
-    e.preventDefault();
-    goNext();
-  }
+    // 定義音量鍵的各種可能名稱 (相容不同瀏覽器)
+    const isVolUp = (e.key === 'VolumeUp' || e.key === 'AudioVolumeUp');
+    const isVolDown = (e.key === 'VolumeDown' || e.key === 'AudioVolumeDown');
 
-  // 原有快捷鍵
-  if(e.key === 'a' || e.key === 'A') { var cb = document.getElementById('autoToggle'); cb.checked = !cb.checked; toggleAutoMode(); }
-  if(e.key === ' ' || e.key === 'Enter') { e.preventDefault(); manualFlip(); }
-  if(e.key === 'ArrowRight') goNext();
-  if(e.key === 'ArrowLeft') goPrev();
-  if(flipped){ if(e.key === '1') rate('bad'); if(e.key === '2') rate('ok'); if(e.key === '3') rate('good'); }
-});
+    // 1. 優先判斷組合鍵：同時按住音量加與減 (翻卡)
+    // 加上一個小延遲判斷或檢查兩鍵是否都在按下狀態
+    if ((keysPressed['VolumeUp'] || keysPressed['AudioVolumeUp']) && 
+        (keysPressed['VolumeDown'] || keysPressed['AudioVolumeDown'])) {
+        e.preventDefault();
+        manualFlip();
+        return; // 觸發組合鍵後直接結束，不執行下方的單鍵邏輯
+    } 
+
+    // 2. 單獨音量鍵操作
+    if (isVolUp) {
+        e.preventDefault(); 
+        // 為了防止按太快導致組合鍵失敗，這裡加個極短的延遲，或是單純執行
+        goPrev();
+    } else if (isVolDown) {
+        e.preventDefault();
+        goNext();
+    }
+
+    // --- 原有快捷鍵 ---
+    if(e.key === 'a' || e.key === 'A') { 
+        var cb = document.getElementById('autoToggle'); 
+        cb.checked = !cb.checked; 
+        toggleAutoMode(); 
+    }
+    if(e.key === ' ' || e.key === 'Enter') { 
+        e.preventDefault(); 
+        manualFlip(); 
+    }
+    if(e.key === 'ArrowRight') goNext();
+    if(e.key === 'ArrowLeft') goPrev();
+    
+    if(flipped){ 
+        if(e.key === '1') rate('bad'); 
+        if(e.key === '2') rate('ok'); 
+        if(e.key === '3') rate('good'); 
+    }
+}, { passive: false }); // 關鍵設定：強制攔截預設行為
 
 document.addEventListener('keyup', function(e) {
-  delete keysPressed[e.key];
+    delete keysPressed[e.key];
 });
 initDeck();
 </script>
