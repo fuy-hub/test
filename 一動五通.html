@@ -1,0 +1,516 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>一動五通</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky simulator bar on top (scenario picker) + six tabs (pipeline + five roles) sharing one state */
+:root{
+  --bg:#f4f7f6; --surface:#ffffff; --fg:#14211f; --mute:#58696a; --line:#d8e2e0;
+  --accent:#0d6b63; --accent-soft:#dcefec; --accent-fg:#ffffff;
+  --ok:#1f7a4a; --ok-soft:#dff2e6; --notice:#2d5da1; --notice-soft:#e2ebf8;
+  --warn:#9a5b00; --warn-soft:#fbecd0; --crit:#b3261e; --crit-soft:#fbe0dd;
+  --font:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1514; --surface:#162120; --fg:#e6efed; --mute:#9bb0ae; --line:#2a3b39;
+  --accent:#5cc7bb; --accent-soft:#1b3a37; --accent-fg:#06201d;
+  --ok:#6ad39a; --ok-soft:#183626; --notice:#8fb5ee; --notice-soft:#1b2a40;
+  --warn:#f0b960; --warn-soft:#3b2d12; --crit:#ff8d84; --crit-soft:#431d1a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1514; --surface:#162120; --fg:#e6efed; --mute:#9bb0ae; --line:#2a3b39;
+  --accent:#5cc7bb; --accent-soft:#1b3a37; --accent-fg:#06201d;
+  --ok:#6ad39a; --ok-soft:#183626; --notice:#8fb5ee; --notice-soft:#1b2a40;
+  --warn:#f0b960; --warn-soft:#3b2d12; --crit:#ff8d84; --crit-soft:#431d1a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:15px;line-height:1.6;
+  padding-block:0 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto}
+h1,h2,h3,h4{margin:0;line-height:1.3;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums}
+.mute{color:var(--mute)}
+
+header.top{padding-block:20px 12px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;justify-content:space-between}
+header.top h1{font-size:22px;font-weight:900;letter-spacing:.02em}
+header.top p{margin:0;color:var(--mute);font-size:13px}
+.tag{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 8px;font-size:12px;color:var(--mute);background:var(--surface)}
+
+.sim{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:10px}
+.sim h2{font-size:13px;color:var(--mute);font-weight:500;letter-spacing:.06em}
+.scn{display:flex;flex-wrap:wrap;gap:8px}
+.scn button{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px 12px;text-align:left;min-height:44px}
+.scn button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.scn b{display:block;font-size:14px}
+.scn span{font-size:12px;color:var(--mute)}
+.simnote{font-size:13px;color:var(--mute);margin:0}
+
+nav.tabs{display:flex;gap:4px;overflow-x:auto;margin-top:16px;border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5}
+nav.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;white-space:nowrap;font-weight:500;color:var(--mute);min-height:44px}
+nav.tabs button[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--accent);font-weight:700}
+.badge{display:inline-block;min-width:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:var(--crit);color:#fff;font-size:12px;line-height:20px;text-align:center}
+
+main{margin-top:20px;display:grid;gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.card h3{font-size:16px;margin-bottom:10px}
+.card h4{font-size:14px;margin-bottom:6px}
+.lead{font-size:13px;color:var(--mute);margin:0 0 10px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-weight:500;color:var(--mute);font-size:12px}
+td.r,th.r{text-align:right}
+tr.today td{background:var(--accent-soft)}
+
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.notice{background:var(--notice-soft);color:var(--notice)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.crit{background:var(--crit-soft);color:var(--crit)}
+.pill.na{background:var(--bg);color:var(--mute);border:1px solid var(--line)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;min-height:40px;font-weight:500}
+.btn.pri{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:4px 12px;font-size:13px;min-height:34px}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent)}
+textarea,input[type=number]{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+input[type=number]{width:86px}
+
+/* pipeline */
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:8px}
+.flow button{text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;position:relative}
+.flow button[aria-pressed="true"]{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.flow b{display:block;font-size:14px} .flow span{font-size:12px;color:var(--mute)}
+.flow button.pulse{animation:pulse .5s ease both}
+@keyframes pulse{from{background:var(--accent-soft);transform:translateY(2px)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.flow button.pulse{animation:none}}
+pre.raw{margin:0;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font-family:var(--mono);font-size:12px;overflow-x:auto;line-height:1.5}
+ul.plain{margin:0;padding-left:18px;display:grid;gap:4px}
+
+/* charts */
+svg.chart{width:100%;height:auto;display:block}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .tick{fill:var(--mute);font-size:11px;font-family:var(--font)}
+.chart .ln{fill:none;stroke-width:2.2;stroke-linejoin:round;stroke-linecap:round}
+.chart .c-a{stroke:var(--accent)} .chart .c-b{stroke:var(--notice)} .chart .c-w{stroke:var(--warn)} .chart .c-r{stroke:var(--crit)}
+.chart .band{fill:var(--accent-soft)} .chart .thr{stroke:var(--crit);stroke-dasharray:5 4;stroke-width:1.5}
+.chart .thrt{fill:var(--crit);font-size:11px}
+.chart .bar{fill:var(--accent)} .chart .bar.today{fill:var(--notice)}
+.chart .dot{fill:var(--surface);stroke-width:2.2}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mute);margin-top:4px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+
+/* elder phone */
+.phone{max-width:420px;margin:0 auto;border:1px solid var(--line);border-radius:28px;background:var(--surface);padding:22px 18px 24px;display:grid;gap:14px;width:100%}
+.phone .hello{font-size:22px;font-weight:700}
+.q{border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:var(--bg)}
+.q h3{font-size:18px;color:var(--mute);font-weight:500;margin-bottom:4px}
+.q .big{font-size:34px;font-weight:900;line-height:1.2}
+.q p{margin:6px 0 0;font-size:20px;line-height:1.5}
+.stars{font-size:30px;letter-spacing:4px;color:var(--warn)}
+.gauge{display:flex;gap:6px;margin-top:8px;align-items:center;font-size:18px}
+.gauge i{width:34px;height:12px;border-radius:6px;background:var(--line)} .gauge i.on{background:var(--accent)}
+.bigbtn{width:100%;min-height:60px;font-size:20px;font-weight:700;border-radius:14px;border:2px solid var(--accent);background:var(--accent);color:var(--accent-fg);margin-top:10px;padding:10px}
+.helpbtn{width:100%;min-height:60px;font-size:20px;font-weight:700;border-radius:14px;border:2px solid var(--crit);background:var(--surface);color:var(--crit);padding:10px}
+.msg{font-size:18px;background:var(--ok-soft);color:var(--ok);border-radius:12px;padding:10px 14px}
+.state-ok{background:var(--ok-soft)} .state-warn{background:var(--warn-soft)} .state-crit{background:var(--crit-soft)}
+
+/* family */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;text-align:center}
+.week div{border:1px solid var(--line);border-radius:10px;padding:8px 2px;font-size:12px;background:var(--bg)}
+.week div.on{background:var(--accent-soft);border-color:var(--accent)}
+.week b{display:block;font-size:18px}
+.meter{height:12px;background:var(--line);border-radius:6px;overflow:hidden;margin:4px 0 2px}
+.meter i{display:block;height:100%;background:var(--accent)}
+.status-line{font-size:20px;font-weight:700}
+
+/* alerts */
+.alert{border:1px solid var(--line);border-left-width:6px;border-radius:8px;padding:12px;display:grid;gap:8px;background:var(--surface)}
+.alert.crit{border-left-color:var(--crit)} .alert.warn{border-left-color:var(--warn)} .alert.notice{border-left-color:var(--notice)}
+.alert h4{margin:0;font-size:15px}
+.steps{display:flex;gap:4px;font-size:12px;flex-wrap:wrap}
+.steps span{padding:1px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mute)}
+.steps span.on{background:var(--accent-soft);border-color:var(--accent);color:var(--fg);font-weight:700}
+.log{font-size:12px;color:var(--mute);margin:0;padding-left:16px}
+.empty{color:var(--mute);padding:14px;border:1px dashed var(--line);border-radius:8px;font-size:14px}
+.stepper{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.stepper span{padding:3px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;color:var(--mute)}
+.stepper span.on{background:var(--accent-soft);border-color:var(--accent);color:var(--fg);font-weight:700}
+.foot{margin-top:28px;font-size:12px;color:var(--mute);border-top:1px solid var(--line);padding-top:12px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:8px;font-size:14px;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.on{opacity:1}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>一動五通</h1>
+    <p>面向五個身分的數據分析與追蹤通報・居家運動照護協作系統</p>
+  </div>
+  <div class="row"><span class="tag">模擬資料</span><span class="tag">虛構個案：林阿嬤，78 歲，手搖機</span></div>
+</header>
+
+<section class="sim" aria-label="模擬器材資料">
+  <h2>模擬今天的器材資料（選一個情境，系統立即處理）</h2>
+  <div class="scn" id="scn"></div>
+  <p class="simnote" id="scnNote"></p>
+</section>
+
+<nav class="tabs" id="tabs" role="tablist" aria-label="畫面切換"></nav>
+<main id="view"></main>
+
+<p class="foot">本系統為競賽概念原型，使用虛構資料。運動與生理數據用於記錄與溝通，不取代診斷或專業人員判斷。警示門檻由醫護依個人設定，此處的數值僅供示範。補助、核銷或給付項目，須依主管機關最新規定確認。</p>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- constants ---------- */
+const ROLES=[["pipe","資料流程"],["elder","長輩"],["family","家屬"],["care","居服員"],["coach","教練"],["med","醫護"]];
+const ROLE_NAME={elder:"長輩",family:"家屬",care:"居服員",coach:"教練",med:"醫護"};
+const WD="日一二三四五六";
+const ST=["已送出","已收到","已確認","已處理"];
+const PAST={ // off: min,hrAvg,hrMax,cad,res,pw,sbp,dbp,sp1,sp2 ; null = no exercise
+ 13:[18,96,112,42,3,22,138,82,97,96],12:null,11:[20,98,115,44,3,24,136,80,97,96],10:[22,99,118,45,3,25,140,84,96,96],
+ 9:null,8:[22,100,119,46,4,28,142,84,97,96],7:[24,101,120,46,4,29,139,81,97,97],6:[25,102,122,47,4,30,137,80,97,96],
+ 5:null,4:[25,103,121,48,4,31,141,83,96,96],3:[26,103,123,48,4,32,138,82,97,97],2:[27,104,124,49,4,33,140,82,97,96],1:[28,104,125,50,4,34,139,81,97,97]};
+const SCN={
+ normal:{name:"一般運動日",desc:"30 分鐘中等強度，數值都在平常範圍",n:30,hrAvg:105,hrMax:126,cad:50,res:4,bp:[138,82],sp:[97,97]},
+ hr:{name:"心率過高",desc:"運動中最高心率超過醫護設定的上限",n:24,hrAvg:128,hrMax:149,cad:54,res:5,bp:[142,84],sp:[97,95]},
+ bp:{name:"運動前血壓偏高",desc:"運動前量到 168/96，建議暫緩運動",n:0,bp:[168,96],sp:[97,null]},
+ miss:{name:"連續未運動",desc:"已經 3 天沒有運動紀錄",n:0,missPast:3},
+ bt:{name:"藍牙斷線",desc:"中途 4 分鐘沒有資料，另有 1 筆感測跳動",n:30,hrAvg:105,hrMax:126,cad:50,res:4,gap:[14,18],spike:6,bp:[136,80],sp:[97,97]}
+};
+
+/* ---------- state ---------- */
+const S={scn:"normal",role:"pipe",pstep:0,hist:[],series:[],clean:null,rules:[],alerts:[],svc:[],coachLog:[],
+  thr:{hr:135,sbp:160,dbp:100,spo2:92,miss:3},share:{min:true,hr:true,bp:true},cheers:0,obs:"",obsChips:[],elderDone:false,aid:0};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mean=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const sd=a=>{const m=mean(a);return Math.sqrt(mean(a.map(v=>(v-m)**2)))};
+const dateOf=off=>{const d=new Date(2026,10,10-off);return {md:(d.getMonth()+1)+"/"+d.getDate(),wd:WD[d.getDay()]}};
+const nowT=()=>{const d=new Date();return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")};
+const mets=pw=>Math.round((1.5+pw/12)*10)/10;
+const intensity=pw=>{const m=mets(pw);return m<3?["輕度",1]:m<5?["中等",2]:["較強",3]};
+let tt;function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("on");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("on"),1800)}
+function copy(text){
+  const fb=()=>{const ta=document.createElement("textarea");ta.value=text;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");toast("已複製")}catch(e){toast("請手動選取複製")}ta.remove()};
+  try{navigator.clipboard.writeText(text).then(()=>toast("已複製"),fb)}catch(e){fb()}
+}
+
+/* ---------- data pipeline ---------- */
+function genSeries(c){
+  const out=[],peak=Math.round(c.n*0.7);
+  for(let t=0;t<c.n;t++){
+    let hr=Math.round(78+(c.hrAvg+3-78)*(1-Math.exp(-t/3))+Math.sin(t*1.3)*2.5);
+    if(hr>=c.hrMax)hr=c.hrMax-2; if(t===peak)hr=c.hrMax;
+    const cad=Math.round(c.cad+Math.cos(t*0.8)*2);
+    const row={t:t+1,hr,cad,res:c.res,pw:Math.round(cad*c.res*0.17)};
+    if(c.gap&&t>=c.gap[0]&&t<c.gap[1]){row.hr=null;row.cad=null;row.pw=null}
+    if(c.spike===t)row.hr=214;
+    out.push(row);
+  }
+  return out;
+}
+function process(){
+  const c=SCN[S.scn],hist=[];
+  for(let off=13;off>=1;off--){
+    const p=PAST[off],miss=c.missPast&&off<=c.missPast;
+    if(!p||miss)hist.push({off,none:true,min:0,...dateOf(off)});
+    else hist.push({off,min:p[0],hrAvg:p[1],hrMax:p[2],cad:p[3],res:p[4],pw:p[5],sbp:p[6],dbp:p[7],sp1:p[8],sp2:p[9],kj:Math.round(p[5]*p[0]*60/100)/10,...dateOf(off)});
+  }
+  S.series=c.n?genSeries(c):[];
+  const raw=S.series,valid=raw.filter(r=>r.hr!=null&&r.hr>=30&&r.hr<=200);
+  const gaps=raw.filter(r=>r.hr==null).length,spikes=raw.filter(r=>r.hr!=null&&r.hr>200).length;
+  S.clean={total:raw.length,valid:valid.length,gaps,spikes};
+  const today={off:0,none:!c.n,min:c.n,...dateOf(0)};
+  if(c.n){
+    today.hrAvg=Math.round(mean(valid.map(r=>r.hr)));today.hrMax=Math.max(...valid.map(r=>r.hr));
+    today.cad=Math.round(mean(valid.map(r=>r.cad)));today.res=c.res;today.pw=Math.round(mean(valid.map(r=>r.pw)));
+    today.kj=Math.round(valid.reduce((s,r)=>s+r.pw*60,0)/100)/10;
+  }
+  if(c.bp){today.sbp=c.bp[0];today.dbp=c.bp[1];today.sp1=c.sp[0];today.sp2=c.sp[1]}
+  hist.push(today);S.hist=hist;
+  S.elderDone=false;S.obs="";S.obsChips=[];
+  evaluate();
+}
+function streak(){let n=0;for(let i=S.hist.length-1;i>=0&&S.hist[i].min===0;i--)n++;return n}
+function evaluate(){
+  const T=S.thr,t=S.hist[S.hist.length-1],past=S.hist.filter(r=>r.min>0&&r.off>0).slice(-7),R=[];
+  const hasEx=t.min>0;
+  if(hasEx){
+    R.push({id:"hr",name:"運動中最高心率",value:t.hrMax+" 次/分",limit:"≤ "+T.hr,lvl:t.hrMax>T.hr?"crit":"ok"});
+    const m=mean(past.map(r=>r.hrAvg)),s=sd(past.map(r=>r.hrAvg)),lim=Math.round(m+2*s);
+    R.push({id:"base",name:"平均心率對照個人基準",value:t.hrAvg+" 次/分",limit:"近 7 次平均 "+Math.round(m)+"，上緣 "+lim,lvl:t.hrAvg>lim?"notice":"ok",lim});
+  }else{
+    R.push({id:"hr",name:"運動中最高心率",value:"今天沒有運動資料",limit:"≤ "+T.hr,lvl:"na"});
+    R.push({id:"base",name:"平均心率對照個人基準",value:"今天沒有運動資料",limit:"—",lvl:"na"});
+  }
+  if(t.sbp)R.push({id:"bp",name:"運動前血壓",value:t.sbp+"/"+t.dbp+" mmHg",limit:"收縮壓 ≤ "+T.sbp+"、舒張壓 ≤ "+T.dbp,lvl:(t.sbp>T.sbp||t.dbp>T.dbp)?"warn":"ok"});
+  else R.push({id:"bp",name:"運動前血壓",value:"未量測",limit:"—",lvl:"na"});
+  if(t.sp2!=null)R.push({id:"sp",name:"運動後血氧",value:t.sp2+" %",limit:"≥ "+T.spo2,lvl:t.sp2<T.spo2?"crit":"ok"});
+  else R.push({id:"sp",name:"運動後血氧",value:"未量測",limit:"—",lvl:"na"});
+  const st=streak();
+  R.push({id:"miss",name:"連續未運動天數",value:st+" 天",limit:"< "+T.miss+" 天",lvl:st>=T.miss?"warn":"ok"});
+  const dq=S.clean.gaps+S.clean.spikes;
+  R.push({id:"dq",name:"資料完整度",value:hasEx?(S.clean.valid+"/"+S.clean.total+" 分鐘可用"):"無資料",limit:"全部可用",lvl:(hasEx&&dq>0)?"notice":(hasEx?"ok":"na")});
+  S.rules=R;
+  // alerts
+  S.alerts=[];S.aid=0;
+  const mk=(key,lvl,title,detail,fam,to,advice)=>{
+    const a={id:++S.aid,key,lvl,title,detail,fam,to,advice,status:0,log:[]};
+    a.log.push({t:nowT(),who:"系統",x:"依規則判斷，已送出給："+to.map(r=>ROLE_NAME[r]).join("、")});S.alerts.push(a);
+  };
+  const g=id=>R.find(r=>r.id===id);
+  if(g("hr").lvl==="crit")mk("hr","crit","運動中心率過高","最高心率 "+t.hrMax+" 次/分，超過醫護設定上限 "+T.hr+"。","阿嬤運動時心跳比平常快，已請她先坐下休息。建議今天打電話關心。",["elder","family","care","med"],"停止運動、坐下休息；休息後仍不舒服請聯絡專業人員。");
+  if(g("sp").lvl==="crit")mk("sp","crit","運動後血氧偏低","運動後血氧 "+t.sp2+"%，低於設定下限 "+T.spo2+"%。","阿嬤運動後的血氧偏低，請盡快聯絡居服員或醫護。",["elder","family","care","med"],"停止運動並休息，複測；未回升請聯絡醫護。");
+  if(g("bp").lvl==="warn")mk("bp","warn","運動前血壓偏高","運動前血壓 "+t.sbp+"/"+t.dbp+" mmHg，超過設定門檻。","阿嬤今天量血壓偏高，建議先休息，暫時不運動。",["elder","care","med"],"暫緩運動，休息 15 分鐘後複測；仍偏高請通知醫護。");
+  if(g("miss").lvl==="warn")mk("miss","warn","連續 "+st+" 天未運動","最近 "+st+" 天沒有運動紀錄。","阿嬤已經 "+st+" 天沒運動，可以打個電話鼓勵她。",["family","care","coach"],"電話或到府關心原因（身體不適、設備、情緒），並留下紀錄。");
+  if(g("base").lvl==="notice")mk("base","notice","心率高於個人平常","平均心率 "+t.hrAvg+"，高於個人基準上緣 "+g("base").lim+"。","阿嬤今天運動時心跳比平常稍快。",["coach","med"],"回診前請醫護確認；教練暫緩加量。");
+  if(g("dq").lvl==="notice")mk("dq","notice","運動資料不完整","藍牙斷線 "+S.clean.gaps+" 分鐘、感測跳動 "+S.clean.spikes+" 筆，已排除，未補值。","今天的運動紀錄有一小段缺漏。",["care"],"到府時檢查藍牙連線與感測夾，確認當天實際運動時間。");
+}
+
+/* ---------- chart helpers ---------- */
+function lineChart(o){
+  const W=640,H=o.h||180,pl=34,pr=10,pt=10,pb=22,n=o.n;
+  const x=i=>pl+(W-pl-pr)*(n<=1?0:i/(n-1)),y=v=>pt+(H-pt-pb)*(1-(v-o.min)/(o.max-o.min));
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label)}">`;
+  o.ticks.forEach(t=>{s+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${y(t)}" y2="${y(t)}"/><text class="tick" x="${pl-6}" y="${y(t)+4}" text-anchor="end">${t}</text>`});
+  if(o.band)s+=`<rect class="band" x="${pl}" width="${W-pl-pr}" y="${y(o.band[1])}" height="${y(o.band[0])-y(o.band[1])}" opacity=".7"/>`;
+  if(o.thr!=null)s+=`<line class="thr" x1="${pl}" x2="${W-pr}" y1="${y(o.thr)}" y2="${y(o.thr)}"/><text class="thrt" x="${W-pr}" y="${y(o.thr)-4}" text-anchor="end">${esc(o.thrLabel||"")}</text>`;
+  o.series.forEach(se=>{
+    let d="",pen=false,last=null;
+    se.v.forEach((v,i)=>{if(v==null){pen=false;return}d+=(pen?"L":"M")+x(i).toFixed(1)+" "+y(v).toFixed(1)+" ";pen=true;last=[x(i),y(v)]});
+    s+=`<path class="ln ${se.c}" d="${d}"/>`;
+    if(last)s+=`<circle class="dot ${se.c}" cx="${last[0]}" cy="${last[1]}" r="4" style="stroke:inherit"/>`;
+  });
+  (o.xl||[]).forEach((l,i)=>{if(l)s+=`<text class="tick" x="${x(i)}" y="${H-6}" text-anchor="middle">${esc(l)}</text>`});
+  return s+"</svg>";
+}
+function barChart(vals,labels,max,unit){
+  const W=640,H=170,pl=34,pr=10,pt=14,pb=22,n=vals.length,bw=(W-pl-pr)/n;
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="近 14 天每日運動分鐘">`;
+  [0,max/2,max].forEach(t=>{const yy=pt+(H-pt-pb)*(1-t/max);s+=`<line class="grid" x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}"/><text class="tick" x="${pl-6}" y="${yy+4}" text-anchor="end">${t}</text>`});
+  vals.forEach((v,i)=>{const h=(H-pt-pb)*v/max,xx=pl+i*bw+bw*0.18;
+    s+=`<rect class="bar${i===n-1?" today":""}" x="${xx}" y="${H-pb-h}" width="${bw*0.64}" height="${h}" rx="3"/>`;
+    if(v>0)s+=`<text class="tick" x="${xx+bw*0.32}" y="${H-pb-h-3}" text-anchor="middle">${v}</text>`;
+    if(i%2===(n-1)%2)s+=`<text class="tick" x="${xx+bw*0.32}" y="${H-6}" text-anchor="middle">${labels[i]}</text>`});
+  return s+"</svg>";
+}
+
+/* ---------- shared bits ---------- */
+const LV={crit:["■","需立即處理"],warn:["▲","請留意"],notice:["●","提醒"],ok:["✓","正常"],na:["–","無資料"]};
+const pill=l=>`<span class="pill ${l}"><span aria-hidden="true">${LV[l][0]}</span>${LV[l][1]}</span>`;
+const lastRow=()=>S.hist[S.hist.length-1];
+function alertCard(a,role){
+  const canAct=role==="care"||role==="med";
+  const text=role==="family"?a.fam:a.detail;
+  const nextLbl=["收到","確認（已聯絡長輩）","標記已處理"][a.status];
+  return `<article class="alert ${a.lvl}">
+    <div class="row" style="justify-content:space-between"><h4>${esc(a.title)}</h4>${pill(a.lvl)}</div>
+    <div>${esc(text)}</div>
+    ${role==="family"?"":`<div class="mute" style="font-size:13px">建議做法：${esc(a.advice)}</div>`}
+    <div class="row">${a.to.map(r=>`<span class="tag">${ROLE_NAME[r]}</span>`).join("")}</div>
+    <div class="steps" aria-label="處理進度">${ST.map((s,i)=>`<span class="${i<=a.status?"on":""}">${s}</span>`).join("")}</div>
+    <ul class="log">${a.log.map(l=>`<li>${l.t} ${esc(l.who)}：${esc(l.x)}</li>`).join("")}</ul>
+    ${canAct&&a.status<3?`<div class="row"><button class="btn pri" data-act="adv" data-id="${a.id}" data-role="${role}">${nextLbl}</button></div>`:""}
+    ${role==="family"?`<div class="row"><button class="btn" data-act="famAck" data-id="${a.id}">我已知悉</button></div>`:""}
+  </article>`;
+}
+const alertsFor=r=>S.alerts.filter(a=>a.to.includes(r));
+
+/* ---------- views ---------- */
+function vPipe(){
+  const steps=[["1 輸入","器材每分鐘資料"],["2 清理","排除缺值與跳動"],["3 規則判斷","對照門檻與個人基準"],["4 依角色輸出","五種畫面與警示"]];
+  const t=lastRow(),p=S.pstep;let body="";
+  if(p===0){
+    if(!S.series.length)body=`<p class="empty">今天沒有收到器材資料。${S.scn==="bp"?"運動前量血壓後，系統建議暫緩，因此沒有開始運動。":"系統只收到歷史紀錄，沒有今天的紀錄。"}</p>`;
+    else{
+      const sl=S.clean.gaps?S.series.slice(11,20):S.series.slice(0,8);
+      body=`<p class="lead">格式參考藍牙 FTMS（運動器材通用格式）。以下為模擬資料，每分鐘一筆，${S.clean.gaps?"顯示斷線前後":"顯示開頭"}幾筆。</p>
+      <div class="scroll"><table><thead><tr><th>分鐘</th><th class="r">心率</th><th class="r">踏頻</th><th class="r">阻力</th><th class="r">功率 W</th></tr></thead><tbody>${sl.map(r=>`<tr><td class="mono">${r.t}</td>${["hr","cad","res","pw"].map(k=>`<td class="r mono">${r[k]==null?'<span class="mute">（無資料）</span>':r[k]}</td>`).join("")}</tr>`).join("")}</tbody></table></div>
+      <h4 style="margin-top:14px">心率（每分鐘）</h4>${lineChart({label:"今天運動心率",n:S.series.length,min:60,max:160,ticks:[60,100,140],thr:S.thr.hr,thrLabel:"上限 "+S.thr.hr,h:150,
+        series:[{c:"c-a",v:S.series.map(r=>r.hr!=null&&r.hr<=200?r.hr:null)}],xl:S.series.map((r,i)=>i%5===4?r.t+"分":"")})}`;
+    }
+  }else if(p===1){
+    const c=S.clean;
+    body=!c.total?`<p class="empty">沒有器材資料可清理。</p>`:`<ul class="plain">
+      <li>收到 ${c.total} 分鐘資料，可用 ${c.valid} 分鐘。</li>
+      <li>${c.gaps?`藍牙斷線 ${c.gaps} 分鐘：標示為「資料缺漏」，不補值，平均值只用可用分鐘計算。`:"沒有缺漏。"}</li>
+      <li>${c.spikes?`感測跳動 ${c.spikes} 筆（心率 214 次/分，超出合理範圍 30–200）：已排除，並記錄原因。`:"沒有超出合理範圍的跳動值。"}</li>
+      ${c.valid?`<li>清理後：平均心率 ${t.hrAvg}、最高心率 ${t.hrMax}、平均功率 ${t.pw} W、總作功 ${t.kj} kJ。</li>`:""}</ul>`;
+  }else if(p===2){
+    body=`<p class="lead">數字與燈號由規則計算。AI 只負責把結果改寫成不同深度的人話，不做診斷。</p><div class="scroll"><table><thead><tr><th>規則</th><th>今天的值</th><th>門檻／基準</th><th>結果</th></tr></thead><tbody>${S.rules.map(r=>`<tr><td>${r.name}</td><td class="num">${r.value}</td><td class="num">${r.limit}</td><td>${pill(r.lvl)}</td></tr>`).join("")}</tbody></table></div>`;
+  }else{
+    const top=S.alerts[0],cnt=n=>S.alerts.filter(a=>a.to.includes(n)).length;
+    const rows=[["長輩",top&&top.to.includes("elder")?top.advice:"今天做多久、做得好不好、下一步做什麼"],["家屬",cnt("family")?cnt("family")+" 則需要注意的提醒":"本週是否持續、運動量是否達標"],["居服員",cnt("care")?cnt("care")+" 件待處理，並自動帶入服務紀錄":"自動帶入服務紀錄，補一句觀察即可"],["教練",cnt("coach")?cnt("coach")+" 則提醒，附課表調整建議":"頻率、強度與進步趨勢"],["醫護",S.alerts.length+" 則事件，附完整生理與運動紀錄","med"]];
+    body=`<div class="scroll"><table><thead><tr><th>角色</th><th>這一筆資料會產生</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td style="white-space:normal">${esc(r[1])}</td></tr>`).join("")}</tbody></table></div>
+    <p class="lead" style="margin-top:10px">異常會進入警示閉環：送出 → 收到 → 確認 → 處理，每一步都留下時間與人員。到「居服員」或「醫護」分頁可以操作。</p>`;
+  }
+  return `<div class="flow" role="group" aria-label="管線步驟">${steps.map((s,i)=>`<button data-act="pstep" data-i="${i}" aria-pressed="${i===p}"><b>${s[0]}</b><span>${s[1]}</span></button>`).join("")}</div>
+  <section class="card"><h3>${steps[p][0]}：${steps[p][1]}</h3>${body}</section>`;
+}
+
+function elderTop(){return S.alerts.find(a=>a.to.includes("elder"))}
+function vElder(){
+  const t=lastRow(),a=elderTop(),h=new Date().getHours();
+  const hello=(h<12?"早安":h<18?"午安":"晚安")+"，林阿嬤";
+  let q1,q2,q3,btn,cls="";
+  if(t.min>0){
+    q1=`<div class="big">${t.min} 分鐘</div>`;
+    const [lab,lv]=intensity(t.pw),stars=t.min>=25?3:t.min>=15?2:1;
+    const words=a&&a.lvl==="crit"?"動得有點快，先休息":stars===3?"做得很好":stars===2?"不錯喔":"有動就很棒";
+    q2=`<div class="stars" aria-label="${stars} 顆星">${"★".repeat(stars)}${"☆".repeat(3-stars)}</div><p>${words}</p><div class="gauge"><span>強度：${lab}</span>${[1,2,3].map(i=>`<i class="${i<=lv?"on":""}"></i>`).join("")}</div>`;
+  }else{q1=`<div class="big" style="font-size:26px">今天還沒有運動</div>`;q2=`<p>${S.scn==="bp"?"血壓有點高，先休息":"還沒有紀錄"}</p>`}
+  if(a&&a.lvl==="crit"){q3="請先坐下休息，喝點水。已通知家人和居服員。";btn="我已經坐下休息了";cls="state-crit"}
+  else if(S.scn==="bp"){q3="今天先不要運動。休息 15 分鐘後，再量一次血壓。";btn="我休息了，要再量血壓";cls="state-warn"}
+  else if(S.scn==="miss"){q3="動一動吧！只要 10 分鐘就好。";btn="開始運動 10 分鐘";cls="state-warn"}
+  else{q3="明天再動 25 分鐘，記得多喝水。";btn=S.elderDone?"已幫您設定提醒":"好，明天提醒我";cls="state-ok"}
+  const cheer=S.cheers>0?`<div class="msg">女兒幫您按了讚：「阿嬤加油！」</div>`:"";
+  return `<div class="phone" aria-label="長輩版畫面（手機示意）"><div class="hello">${hello}</div>
+   <section class="q"><h3>今天做多久</h3>${q1}</section>
+   <section class="q"><h3>做得好不好</h3>${q2}</section>
+   <section class="q ${cls}"><h3>下一步</h3><p>${q3}</p><button class="bigbtn" data-act="elderOk" ${S.elderDone?"disabled":""}>${btn}</button></section>
+   ${cheer}
+   <button class="helpbtn" data-act="help">我不舒服，需要幫忙</button></div>
+   <p class="lead" style="text-align:center">長輩版每頁只回答三件事。字體大、按鈕大、圖示都附文字、沒有時間限制。</p>`;
+}
+
+function vFamily(){
+  const wk=S.hist.slice(-7),cnt=wk.filter(r=>r.min>0).length,min=wk.reduce((s,r)=>s+r.min,0);
+  const al=alertsFor("family");
+  const head=al.length?al[0].fam:cnt>=4?"本週運動 "+cnt+" 次，穩定持續。":"本週運動 "+cnt+" 次，可以多鼓勵她。";
+  const t=lastRow();
+  return `<div class="grid2">
+   <section class="card"><h3>阿嬤這週的運動</h3><p class="status-line" style="margin:0 0 12px">${esc(head)}</p>
+    <div class="week">${wk.map(r=>`<div class="${r.min>0?"on":""}">${r.md}<br>週${r.wd}<b>${r.min>0?(S.share.min?r.min:"●"):"–"}</b>${r.min>0?(S.share.min?"分":"有運動"):"未運動"}</div>`).join("")}</div>
+    <div style="margin-top:14px"><div class="row" style="justify-content:space-between"><span>運動次數</span><span class="num">${cnt} / 5 次</span></div><div class="meter"><i style="width:${Math.min(100,cnt/5*100)}%"></i></div></div>
+    <div style="margin-top:8px"><div class="row" style="justify-content:space-between"><span>運動分鐘</span><span class="num">${min} / 150 分</span></div><div class="meter"><i style="width:${Math.min(100,min/150*100)}%"></i></div></div>
+    <p class="lead" style="margin-top:10px">每週 5 次、150 分鐘是本示範的練習目標，實際目標由醫護或教練決定。</p>
+    <div class="row"><button class="btn pri" data-act="cheer">按讚鼓勵</button><span class="mute num">${S.cheers>0?"已送出 "+S.cheers+" 次，長輩版會看到":""}</span></div></section>
+   <section class="card"><h3>需要注意的事</h3>${al.length?`<div style="display:grid;gap:10px">${al.map(a=>alertCard(a,"family")).join("")}</div>`:`<p class="empty">目前沒有需要注意的事。</p>`}
+    <h4 style="margin-top:16px">阿嬤同意分享的項目</h4>
+    <div class="row">${[["min","運動時間"],["hr","心率"],["bp","血壓"]].map(([k,l])=>`<label class="chip" style="display:inline-flex;gap:6px;align-items:center"><input type="checkbox" data-act="share" data-k="${k}" ${S.share[k]?"checked":""}> ${l}</label>`).join("")}</div>
+    <div style="margin-top:10px;font-size:14px">${S.share.hr&&t.min>0?`今天心率：平均 ${t.hrAvg}、最高 ${t.hrMax} 次/分<br>`:""}${S.share.bp&&t.sbp?`今天運動前血壓：${t.sbp}/${t.dbp}<br>`:""}${!S.share.hr&&!S.share.bp?`<span class="mute">長輩未分享心率與血壓。</span>`:""}</div></section></div>`;
+}
+
+function vCare(){
+  const t=lastRow(),mine=alertsFor("care"),open=mine.filter(a=>a.status<3);
+  const chips=["精神好","有點喘","膝蓋或肩膀不適","情緒低落","設備正常"];
+  const stepN=S.obs||S.obsChips.length?2:1;
+  const auto=t.min>0?`運動 ${t.min} 分鐘｜強度 ${intensity(t.pw)[0]}｜平均心率 ${t.hrAvg}、最高 ${t.hrMax}｜作功 ${t.kj} kJ${t.sbp?`｜運動前血壓 ${t.sbp}/${t.dbp}`:""}${S.clean.gaps?`｜資料缺漏 ${S.clean.gaps} 分鐘`:""}`:`今天沒有運動資料${t.sbp?`｜運動前血壓 ${t.sbp}/${t.dbp}`:""}`;
+  return `<div class="grid2">
+   <section class="card"><h3>今日服務紀錄（3 步完成）</h3>
+    <div class="stepper"><span class="on">1 核對器材資料</span><span class="${stepN>=2?"on":""}">2 補一句觀察</span><span>3 確認送出</span></div>
+    <h4>已自動帶入</h4><p style="margin:0 0 12px;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px">${esc(auto)}</p>
+    <h4>補一句觀察</h4><div class="row" style="margin-bottom:8px">${chips.map(c=>`<button class="chip" data-act="chip" data-v="${c}" aria-pressed="${S.obsChips.includes(c)}">${c}</button>`).join("")}</div>
+    <label for="obs" class="mute" style="font-size:13px">補充說明（可不填）</label><textarea id="obs" rows="2" placeholder="例如：今天自己搖得很順，說明天想再試試。">${esc(S.obs)}</textarea>
+    <div class="row" style="margin-top:10px"><button class="btn pri" data-act="svc">確認並存入服務紀錄</button></div>
+    <h4 style="margin-top:18px">已存入的服務紀錄</h4>
+    ${S.svc.length?`<div class="scroll"><table><thead><tr><th>日期</th><th class="r">分鐘</th><th>觀察</th><th>人員</th></tr></thead><tbody>${S.svc.map(r=>`<tr><td>${r.d}</td><td class="r num">${r.min}</td><td style="white-space:normal">${esc(r.o)}</td><td>${r.by}</td></tr>`).join("")}</tbody></table></div><div class="row" style="margin-top:8px"><button class="btn" data-act="copySvc">複製為表格（貼到 Excel）</button></div>`:`<p class="empty">還沒有紀錄。完成上面三步後會出現在這裡，並可複製到 Excel 供人員查核。</p>`}
+   </section>
+   <section class="card"><h3>待處理清單 <span class="pill ${open.length?"warn":"ok"}">${open.length} 件</span></h3>
+    ${mine.length?`<div style="display:grid;gap:10px">${mine.map(a=>alertCard(a,"care")).join("")}</div>`:`<p class="empty">沒有待處理的事項。選擇上方「心率過高」或「連續未運動」情境，看看警示怎麼送到這裡。</p>`}</section></div>`;
+}
+
+function vCoach(){
+  const H=S.hist,vals=H.map(r=>r.min),labels=H.map(r=>r.md);
+  const wk=(a,b)=>H.slice(a,b),cnt=r=>r.filter(x=>x.min>0).length;
+  const thisW=wk(7,14),lastW=wk(0,7);
+  const pwAvg=r=>{const s=r.filter(x=>x.min>0);return s.length?mean(s.map(x=>x.pw)):0};
+  const dPw=Math.round(pwAvg(thisW)-pwAvg(lastW));
+  const blocked=S.alerts.some(a=>a.lvl==="crit"||a.lvl==="warn");
+  const sug=blocked?["暫不調整","目前有安全或連續未運動提醒，先不加量，等醫護或居服員回覆。"]:cnt(thisW)>=4&&dPw>0?["可小幅加量","本週運動 "+cnt(thisW)+" 次，平均功率比上週高 "+dPw+" W，可考慮阻力加 1 級（建議，由教練決定）。"]:["維持目前課表","頻率與強度穩定，維持目前阻力與時間。"];
+  const hrs=H.map(r=>r.min>0?r.hrAvg:null);
+  return `<div class="grid2">
+   <section class="card"><h3>近 14 天運動頻率</h3>${barChart(vals,labels,40)}
+    <div class="row" style="margin-top:8px;gap:20px"><span>本週 <b class="num">${cnt(thisW)}</b> 次／<b class="num">${thisW.reduce((s,r)=>s+r.min,0)}</b> 分</span><span class="mute">上週 <span class="num">${cnt(lastW)}</span> 次／<span class="num">${lastW.reduce((s,r)=>s+r.min,0)}</span> 分</span></div></section>
+   <section class="card"><h3>強度與進步（對照自己）</h3>
+    ${lineChart({label:"近 14 天平均心率",n:H.length,min:90,max:140,ticks:[90,110,130],h:170,series:[{c:"c-b",v:hrs}],xl:labels.map((l,i)=>i%3===0?l:"")})}
+    <div class="legend"><span><i style="background:var(--notice)"></i>每日平均心率（次/分）</span></div>
+    <p style="margin:8px 0 0;font-size:14px">平均功率：本週 <b class="num">${Math.round(pwAvg(thisW))}</b> W，上週 <b class="num">${Math.round(pwAvg(lastW))}</b> W（${dPw>=0?"+":""}${dPw}）。運動強度為估計值，約 ${mets(pwAvg(thisW))} METs。</p></section>
+   <section class="card"><h3>課表調整建議</h3><p class="status-line" style="margin:0 0 6px">${sug[0]}</p><p style="margin:0 0 12px">${sug[1]}</p>
+    <div class="row"><button class="btn pri" data-act="coach" data-v="採納：${sug[0]}">採納建議</button><button class="btn" data-act="coach" data-v="保留：維持原課表，另行評估">先保留</button></div>
+    ${S.coachLog.length?`<ul class="log" style="margin-top:10px">${S.coachLog.map(l=>`<li>${l.t} ${esc(l.x)}</li>`).join("")}</ul>`:""}</section>
+   <section class="card"><h3>給教練的提醒</h3>${alertsFor("coach").length?`<div style="display:grid;gap:10px">${alertsFor("coach").map(a=>alertCard(a,"coach")).join("")}</div>`:`<p class="empty">目前沒有提醒。</p>`}</section></div>`;
+}
+
+function vMed(){
+  const H=S.hist.filter(r=>r.min>0||r.sbp),T=S.thr,ex=S.hist.filter(r=>r.min>0);
+  const past=S.hist.filter(r=>r.min>0&&r.off>0).slice(-7),m=mean(past.map(r=>r.hrAvg)),s=sd(past.map(r=>r.hrAvg));
+  const full=S.hist,nm=(id,l,v,st)=>`<label>${l}<br><input type="number" id="${id}" data-act="thr" data-k="${v}" value="${T[v]}" step="${st||1}"></label>`;
+  return `<div class="grid2">
+   <section class="card"><h3>心率趨勢</h3><p class="lead">綠色帶是個人近 7 次平均 ±2 個標準差；紅色虛線是醫護設定的上限。</p>
+    ${lineChart({label:"近 14 天心率",n:full.length,min:80,max:160,ticks:[80,100,120,140,160],band:[Math.round(m-2*s),Math.round(m+2*s)],thr:T.hr,thrLabel:"上限 "+T.hr,h:200,
+      series:[{c:"c-a",v:full.map(r=>r.min>0?r.hrAvg:null)},{c:"c-w",v:full.map(r=>r.min>0?r.hrMax:null)}],xl:full.map((r,i)=>i%3===0?r.md:"")})}
+    <div class="legend"><span><i style="background:var(--accent)"></i>平均心率</span><span><i style="background:var(--warn)"></i>最高心率</span></div></section>
+   <section class="card"><h3>警示門檻（由醫護個別設定）</h3><p class="lead">修改後，系統會用新門檻重新判斷今天的資料，警示紀錄會重新產生。</p>
+    <div class="row" style="gap:16px;align-items:flex-end">${nm("t1","最高心率上限","hr")}${nm("t2","收縮壓上限","sbp")}${nm("t3","舒張壓上限","dbp")}${nm("t4","血氧下限 %","spo2")}${nm("t5","連續未運動天數","miss")}</div></section>
+  </div>
+  <section class="card"><h3>運動與生理紀錄（近 14 天）</h3><div class="scroll"><table><thead><tr><th>日期</th><th class="r">分鐘</th><th class="r">平均心率</th><th class="r">最高心率</th><th class="r">踏頻</th><th class="r">阻力</th><th class="r">功率 W</th><th class="r">作功 kJ</th><th class="r">METs（估）</th><th class="r">運動前血壓</th><th class="r">血氧 前/後</th></tr></thead><tbody>
+   ${full.slice().reverse().map(r=>`<tr class="${r.off===0?"today":""}"><td>${r.md}（${r.wd}）</td>${r.min>0?`<td class="r num">${r.min}</td><td class="r num">${r.hrAvg}</td><td class="r num">${r.hrMax}</td><td class="r num">${r.cad}</td><td class="r num">${r.res}</td><td class="r num">${r.pw}</td><td class="r num">${r.kj}</td><td class="r num">${mets(r.pw)}</td>`:`<td class="r mute" colspan="8">未運動</td>`}<td class="r num">${r.sbp?r.sbp+"/"+r.dbp:"—"}</td><td class="r num">${r.sp1?r.sp1+" / "+(r.sp2||"—"):"—"}</td></tr>`).join("")}</tbody></table></div>
+   <div class="row" style="margin-top:10px"><button class="btn" data-act="copyMed">複製回診摘要</button><span class="mute" style="font-size:13px">摘要為純文字，可貼到病歷或 PDF 文件。</span></div></section>
+  <section class="card"><h3>異常事件與處理紀錄</h3>${S.alerts.length?`<div style="display:grid;gap:10px">${S.alerts.map(a=>alertCard(a,"med")).join("")}</div>`:`<p class="empty">今天沒有異常事件。</p>`}</section>`;
+}
+
+/* ---------- render ---------- */
+function renderScn(){
+  $("#scn").innerHTML=Object.entries(SCN).map(([k,v])=>`<button data-act="scn" data-k="${k}" aria-pressed="${k===S.scn}"><b>${v.name}</b><span>${v.desc}</span></button>`).join("");
+  $("#scnNote").textContent="選擇後，下方每個角色的畫面會同步更新。可以切換分頁看同一筆資料的不同說法。";
+}
+function renderTabs(){
+  $("#tabs").innerHTML=ROLES.map(([k,l])=>{
+    const n=k==="pipe"?0:alertsFor(k).filter(a=>a.status<3&&a.lvl!=="notice").length;
+    return `<button role="tab" data-act="tab" data-k="${k}" aria-selected="${k===S.role}">${l}${n?`<span class="badge" aria-label="${n} 則提醒">${n}</span>`:""}</button>`}).join("");
+}
+function render(){
+  const keepTA=document.activeElement&&document.activeElement.id==="obs";
+  renderTabs();
+  const f={pipe:vPipe,elder:vElder,family:vFamily,care:vCare,coach:vCoach,med:vMed}[S.role];
+  $("#view").innerHTML=f();
+  if(keepTA){const e=$("#obs");if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}}
+}
+
+/* ---------- events ---------- */
+function logTo(a,who,x){a.log.push({t:nowT(),who,x})}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]");if(!b||b.tagName==="INPUT"&&b.type!=="checkbox")return;
+  const act=b.dataset.act;
+  if(act==="scn"){S.scn=b.dataset.k;S.pstep=0;process();S.role="pipe";renderScn();render();
+    document.querySelectorAll(".flow button").forEach((el,i)=>{el.style.animationDelay=i*120+"ms";el.classList.add("pulse")});toast("已接收並處理今天的資料");}
+  else if(act==="tab"){S.role=b.dataset.k;render()}
+  else if(act==="pstep"){S.pstep=+b.dataset.i;render()}
+  else if(act==="adv"){const a=S.alerts.find(x=>x.id==+b.dataset.id);if(!a||a.status>=3)return;a.status++;
+    const who=ROLE_NAME[b.dataset.role],x=["","已收到提醒","已確認，已聯絡長輩並了解狀況","已處理完成，結果記入服務紀錄"][a.status];logTo(a,who,x);render();toast("狀態：「"+ST[a.status]+"」")}
+  else if(act==="famAck"){const a=S.alerts.find(x=>x.id==+b.dataset.id);logTo(a,"家屬","已知悉，會打電話關心");render();toast("已記錄")}
+  else if(act==="help"){const a={id:++S.aid,key:"help",lvl:"crit",title:"長輩按下求助",detail:"長輩按下「我不舒服，需要幫忙」。",fam:"阿嬤按了求助鈕，請盡快聯絡她。",to:["family","care","med"],advice:"立即電話聯絡長輩；必要時聯絡緊急醫療。",status:0,log:[]};
+    logTo(a,"系統","求助訊號已送出給：家屬、居服員、醫護");S.alerts.unshift(a);render();toast("已通知家人與居服員")}
+  else if(act==="elderOk"){S.elderDone=true;const a=elderTop();if(a&&a.lvl==="crit"){logTo(a,"長輩","回報：已坐下休息")}render();toast(S.scn==="miss"?"請握好手搖機，慢慢開始":"好的")}
+  else if(act==="cheer"){S.cheers++;render();toast("已送出鼓勵")}
+  else if(act==="chip"){const v=b.dataset.v,i=S.obsChips.indexOf(v);i>=0?S.obsChips.splice(i,1):S.obsChips.push(v);render()}
+  else if(act==="svc"){const t=lastRow(),o=[...S.obsChips,S.obs.trim()].filter(Boolean).join("；")||"（未填寫）";
+    S.svc.unshift({d:t.md+"（週"+t.wd+"）",min:t.min,o,by:"居服員"});S.obs="";S.obsChips=[];render();toast("已存入服務紀錄")}
+  else if(act==="copySvc"){copy(["日期\t運動分鐘\t觀察\t人員",...S.svc.map(r=>[r.d,r.min,r.o,r.by].join("\t"))].join("\n"))}
+  else if(act==="coach"){S.coachLog.unshift({t:nowT(),x:b.dataset.v});render();toast("已記錄")}
+  else if(act==="copyMed"){const r=lastRow(),f=S.rules.filter(x=>x.lvl!=="ok"&&x.lvl!=="na");
+    copy("林阿嬤（虛構個案）回診摘要\n日期：2026-11-10\n今日："+(r.min>0?`運動 ${r.min} 分鐘，平均心率 ${r.hrAvg}、最高 ${r.hrMax}，作功 ${r.kj} kJ`:"未運動")+(r.sbp?`，運動前血壓 ${r.sbp}/${r.dbp}`:"")+"\n異常："+(f.length?f.map(x=>x.name+"："+x.value).join("；"):"無")+"\n（數據僅供記錄與溝通，不取代專業判斷）")}
+});
+document.addEventListener("input",e=>{
+  if(e.target.id==="obs"){S.obs=e.target.value}
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.act==="share"){S.share[t.dataset.k]=t.checked;render()}
+  else if(t.dataset.act==="thr"){const v=parseFloat(t.value);if(!isNaN(v)){S.thr[t.dataset.k]=v;evaluate();render();toast("已用新門檻重新判斷")}}
+});
+
+process();renderScn();render();
+})();
+</script>
+
+</body></html>
